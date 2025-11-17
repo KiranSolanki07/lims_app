@@ -47,12 +47,18 @@ export default function AuthPage() {
 
   // Google OAuth
   const handleGoogleAuth = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    })
-    if (error) alert(error.message)
-  }
+  const redirectBaseUrl = import.meta.env.DEV
+    ? import.meta.env.VITE_APP_URL_LOCAL
+    : import.meta.env.VITE_APP_URL_PROD;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${redirectBaseUrl}/dashboard` },
+  });
+
+  if (error) alert(error.message);
+};
+
 
   // Email Signup
   const handleEmailSignup = async (e: React.FormEvent<HTMLFormElement>) => {
