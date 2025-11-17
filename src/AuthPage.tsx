@@ -37,7 +37,7 @@ export default function AuthPage() {
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle()
-
+        
         if (!profile?.role) navigate('/contact-admin')
         else navigate('/dashboard')
       }
@@ -49,13 +49,10 @@ export default function AuthPage() {
   const handleGoogleAuth = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
+      options: { redirectTo: `${window.location.origin}/dashboard` },
     })
     if (error) alert(error.message)
   }
-
 
   // Email Signup
   const handleEmailSignup = async (e: React.FormEvent<HTMLFormElement>) => {
