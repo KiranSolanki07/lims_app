@@ -27,6 +27,14 @@ export default function AuthPage() {
   const [loginData, setLoginData] = useState<LoginData>({ email: '', password: '' })
   const navigate = useNavigate()
 
+  // Helper to get redirect URL based on environment
+  const getRedirectUrl = (path = '/dashboard') => {
+    const baseUrl = import.meta.env.DEV
+      ? import.meta.env.VITE_APP_URL_LOCAL
+      : import.meta.env.VITE_APP_URL_PROD
+    return `${baseUrl}${path}`
+  }
+
   // Redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
@@ -37,7 +45,7 @@ export default function AuthPage() {
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle()
-        
+
         if (!profile?.role) navigate('/contact-admin')
         else navigate('/dashboard')
       }
@@ -47,18 +55,24 @@ export default function AuthPage() {
 
   // Google OAuth
   const handleGoogleAuth = async () => {
-  const redirectBaseUrl = import.meta.env.DEV
-    ? import.meta.env.VITE_APP_URL_LOCAL
-    : import.meta.env.VITE_APP_URL_PROD;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: getRedirectUrl() },
+    })
 
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: `${redirectBaseUrl}/dashboard` },
-  });
+    if (error) alert(error.message)
+  }
+  // LinkedIn OAuth
+  const handleLinkedInAuth = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "linkedin_oidc",
+      options: {
+        redirectTo: getRedirectUrl(), // same redirect as Google
+      },
+    });
 
-  if (error) alert(error.message);
-};
-
+    if (error) alert(error.message);
+  };
 
   // Email Signup
   const handleEmailSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,6 +90,7 @@ export default function AuthPage() {
           first_name: signupData.firstName,
           last_name: signupData.lastName,
         },
+        emailRedirectTo: getRedirectUrl(), // valid redirect for signup
       },
     })
 
@@ -112,6 +127,7 @@ export default function AuthPage() {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginData.email,
       password: loginData.password,
+      // DO NOT include redirectTo / emailRedirectTo here — not supported in this API
     })
 
     if (error) {
@@ -187,6 +203,19 @@ export default function AuthPage() {
                     </span>
                   </button>
                   <button
+                    onClick={handleLinkedInAuth}
+                    className="flex items-center justify-center gap-3 border border-gray-300 rounded-full py-3 mb-4 hover:bg-gray-50 transition"
+                  >
+                    <img
+                      src="https://www.svgrepo.com/show/448234/linkedin.svg"
+                      alt="LinkedIn"
+                      className="h-5 w-5"
+                    />
+                    <span className="text-gray-800 font-medium text-sm">Continue with LinkedIn</span>
+                  </button>
+
+
+                  <button
                     onClick={() => setShowEmailSignup(true)}
                     className="flex items-center justify-center gap-3 border border-gray-300 rounded-full py-3 px-5 hover:bg-gray-50 transition"
                   >
@@ -227,6 +256,19 @@ export default function AuthPage() {
                   />
                   <span className="text-gray-800 font-medium text-sm">Continue with Google</span>
                 </button>
+                <button
+                  onClick={handleLinkedInAuth}
+                  className="flex items-center justify-center gap-3 border border-gray-300 rounded-full py-3 mb-4 hover:bg-gray-50 transition"
+                >
+                  <img
+                    src="https://www.svgrepo.com/show/448234/linkedin.svg"
+                    alt="LinkedIn"
+                    className="h-5 w-5"
+                  />
+                  <span className="text-gray-800 font-medium text-sm">Continue with LinkedIn</span>
+                </button>
+
+
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
                   <div>
                     <label className="text-sm text-gray-600">Email address</label>
