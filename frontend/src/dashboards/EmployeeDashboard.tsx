@@ -1,10 +1,14 @@
-import type { User } from "../types"
+import type { DashboardProfile } from "../types"
 
-export default function EmployeeDashboard({ user }: { user: User }) {
+type Props = {
+  profile: DashboardProfile
+}
+
+export default function EmployeeDashboard({ profile }: Props) {
   return (
     <div>
       <h1>Employee Dashboard</h1>
-      <p>Welcome, {user.first_name}</p>
+      <p>Welcome, {profile.first_name}</p>
     </div>
   )
 }

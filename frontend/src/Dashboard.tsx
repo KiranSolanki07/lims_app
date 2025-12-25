@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom'
 
 import EmployeeDashboard from './dashboards/EmployeeDashboard'
 import InternDashboard from './dashboards/InternDashboard'
-import type { Profile } from './types'
+import type { DashboardProfile  } from './types'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<DashboardProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
