@@ -1,10 +1,10 @@
-import type { Profile } from "../types"
+import type { User } from "../types"
 
-export default function InternDashboard({ profile }: { profile: Profile }) {
+export default function InternDashboard({ user }: { user: User }) {
   return (
     <div>
       <h1>Intern Dashboard</h1>
-      <p>Welcome, {profile.first_name}</p>
+      <p>Welcome, {user.first_name}</p>
     </div>
   )
 }

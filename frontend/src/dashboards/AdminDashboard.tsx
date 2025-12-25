@@ -1,10 +1,10 @@
-import type { Profile } from "../types"
+import type { User } from "../types"
 
-export default function AdminDashboard({ profile }: { profile: Profile }) {
+export default function AdminDashboard({ user }: { user: User }) {
   return (
     <div>
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      <p>Welcome, {profile.first_name}</p>
+      <p>Welcome, {user.first_name}</p>
     </div>
   )
 }
