@@ -35,19 +35,49 @@ export default function AuthPage() {
     return `${baseUrl}${path}`
   }
 
-  // Redirect if already logged in
+
+  //  -------------------------------------------------------
+  //  ⭐ UNIVERSAL PROFILE SYNC (Google, LinkedIn, Email Login)
+  //  -------------------------------------------------------
+  // Always sync names from OAuth into `profiles`
+const syncUserProfile = async (user: any) => {
+  const metadata = user.user_metadata;
+
+  const firstName =
+    metadata.given_name ||
+    metadata.firstName ||
+    metadata.first_name ||
+    metadata.localizedFirstName ||
+    '';
+
+  const lastName =
+    metadata.family_name ||
+    metadata.lastName ||
+    metadata.last_name ||
+    metadata.localizedLastName ||
+    '';
+
+  await supabase
+  .from("profiles")
+  .upsert(
+    {
+      id: user.id,
+      first_name: firstName,
+      last_name: lastName,
+      role: null,
+    },
+    { onConflict: "id" }
+  );
+
+};
+
+
+  // Redirect if already logged in (OAuth callback lands here)
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle()
-
-        if (!profile?.role) navigate('/contact-admin')
-        else navigate('/dashboard')
+      if (session?.user) {
+        await syncUserProfile(session.user);
       }
     }
     checkSession()
