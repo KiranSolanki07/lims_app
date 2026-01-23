@@ -1,12 +1,22 @@
 import { useNavigate } from 'react-router-dom'
-import { supabase } from './supabaseClient'
+import { useAuth } from './contexts/AuthContext'
 
 export default function ContactAdmin() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   const handleBackToLogin = async () => {
-    await supabase.auth.signOut() // log out user
-    navigate('/')
+    try {
+      await logout();
+      // Small delay to ensure logout completes
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 100);
+    } catch (err) {
+      console.error('Logout error:', err);
+      // Force navigate even if logout fails
+      navigate('/', { replace: true });
+    }
   }
 
   return (

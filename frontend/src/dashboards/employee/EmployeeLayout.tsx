@@ -2,34 +2,23 @@ import { NavLink, useNavigate, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import DashboardSvg from "../../icons/DashboardSvg";
-import EmployeesSvg from "../../icons/EmployeesSvg";
-import WeekendsSvg from "../../icons/WeekendsSvg";
 import AttendanceSvg from "../../icons/AttendanceSvg";
 import LeavesSvg from "../../icons/LeavesSvg";
-import HolidaysSvg from "../../icons/HolidaysSvg";
 import logo from "../../assets/mbt-logo.png";
-import AdminHome from "./AdminHome";
-import UsersPage from "./UsersPage";
-import WeekendsPage from "./WeekendsPage";
-import AttendancePage from "./AttendancePage";
-import LeavesPage from "./LeavesPage";
-import HolidaysPage from "./HolidaysPage";
-import SettingsPage from "./SettingsPage";
-import ReportsPage from "./ReportsPage";
+import EmployeeHome from "./EmployeeHome";
+import EmployeeAttendancePage from "./EmployeeAttendancePage";
+import EmployeeLeavesPage from "./EmployeeLeavesPage";
 
-export default function AdminLayout() {
+export default function EmployeeLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const links = [
-    { to: "/admin", label: "Dashboard", icon: DashboardSvg, isSvg: true },
-    { to: "/admin/users", label: "Employees", icon: EmployeesSvg, isSvg: true },
-    { to: "/admin/weekends", label: "Weekends", icon: WeekendsSvg, isSvg: true },
-    { to: "/admin/attendance", label: "Attendance", icon: AttendanceSvg, isSvg: true },
-    { to: "/admin/leaves", label: "Leaves", icon: LeavesSvg, isSvg: true },
-    { to: "/admin/holidays", label: "Holidays", icon: HolidaysSvg, isSvg: true },
+    { to: "/employee", label: "Dashboard", icon: DashboardSvg, isSvg: true },
+    { to: "/employee/attendance", label: "Attendance", icon: AttendanceSvg, isSvg: true },
+    { to: "/employee/leaves", label: "Leaves", icon: LeavesSvg, isSvg: true },
   ];
 
   const handleLogout = async () => {
@@ -54,14 +43,13 @@ export default function AdminLayout() {
     }
   };
 
-
   return (
     <div className="flex h-screen bg-[#f5f7fb]">
-
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-black/40 z-30 lg:hidden transition-opacity ${sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+        className={`fixed inset-0 bg-black/40 z-30 lg:hidden transition-opacity ${
+          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
         onClick={() => setSidebarOpen(false)}
       />
 
@@ -78,14 +66,12 @@ export default function AdminLayout() {
         `}
       >
         <div className="flex items-center justify-between p-5">
-          <h1 className="flex items-center justify-center" style={{width:"100%",}}>
-            <img
-              src={logo}
-              alt="MBT Logo"
-              className="h-10 w-auto"
-            />
+          <h1 className="flex items-center justify-center" style={{ width: "100%" }}>
+            <img src={logo} alt="MBT Logo" className="h-10 w-auto" />
           </h1>
-          <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>✕</button>
+          <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+            ✕
+          </button>
         </div>
 
         <nav className="p-4 text-gray-600 text-sm space-y-1">
@@ -119,18 +105,25 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-[#fff]">
-
         {/* Navbar */}
-        <header className=" bg-white px-6 py-4 flex items-center justify-between border-gray-200">
+        <header className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
-            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>☰</button>
+            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+              ☰
+            </button>
           </div>
 
           <div className="flex items-center gap-6">
-            <button><i className="lni lni-alarm text-xl"></i></button>
-            <button><i className="lni lni-night text-xl"></i></button>
-            <button><i className="lni lni-flag-alt text-xl"></i></button>
-
+            <button>
+              <i className="lni lni-alarm text-xl"></i>
+            </button>
+            <button>
+              <i className="lni lni-night text-xl"></i>
+            </button>
+            <button>
+              <i className="lni lni-flag-alt text-xl"></i>
+            </button>
+            
             {/* User Info and Logout Button */}
             <div className="relative">
               <button
@@ -141,7 +134,7 @@ export default function AdminLayout() {
                 <i className="lni lni-user text-xl"></i>
                 {user && (
                   <span className="text-sm text-gray-700 font-medium">
-                    {user.first_name} {user.last_name}
+                    {user.firstName} {user.lastName}
                   </span>
                 )}
               </button>
@@ -151,7 +144,7 @@ export default function AdminLayout() {
                   {user && (
                     <>
                       <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-900">{user.first_name} {user.last_name}</p>
+                        <p className="text-sm font-semibold text-gray-900">{user.firstName} {user.lastName}</p>
                         <p className="text-xs text-gray-500">{user.email}</p>
                         <p className="text-xs text-blue-600 font-medium mt-1">{user.role}</p>
                       </div>
@@ -173,17 +166,12 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex justify-center h-screen overflow-y-auto p-6" style={{ backgroundColor: "#f4f7fb", borderRadius: 20 }}>
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto">
           <Routes>
-            <Route index element={<AdminHome />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="weekends" element={<WeekendsPage />} />
-            <Route path="attendance" element={<AttendancePage />} />
-            <Route path="leaves" element={<LeavesPage />} />
-            <Route path="holidays" element={<HolidaysPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route index element={<EmployeeHome />} />
+            <Route path="attendance" element={<EmployeeAttendancePage />} />
+            <Route path="leaves" element={<EmployeeLeavesPage />} />
           </Routes>
         </main>
       </div>

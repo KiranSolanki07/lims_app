@@ -1,57 +1,44 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './supabaseClient'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-import EmployeeDashboard from './dashboards/EmployeeDashboard'
-import InternDashboard from './dashboards/InternDashboard'
-import type { DashboardProfile  } from './types'
+import { useAuth } from './contexts/AuthContext'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [profile, setProfile] = useState<DashboardProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, isAuthenticated } = useAuth()
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+    // Wait for loading to complete
+    if (loading) return
 
-      if (!session) {
-        navigate('/')
-        return
-      }
-
-      const user = session.user
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('role, first_name, last_name')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (!profileData || !profileData.role) {
-        navigate('/contact-admin')
-        return
-      }
-
-      setProfile(profileData)
-      setLoading(false)
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      navigate('/')
+      return
     }
 
-    loadUser()
-  }, [navigate])
+    // If user doesn't have a role, redirect to contact admin
+    if (!user?.role) {
+      navigate('/contact-admin')
+      return
+    }
 
-  if (loading) return null
+    // Redirect based on role
+    if (user.role === "Admin") {
+      navigate("/admin")
+    } else if (user.role === "Employee") {
+      navigate("/employee")
+    } else if (user.role === "Intern") {
+      navigate("/intern")
+    }
+  }, [loading, isAuthenticated, user, navigate])
 
-  // FIXED — safe
-  if (profile?.role === "Admin") {
-    navigate("/admin")
-    return null
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
-  return (
-    <>
-      {profile?.role === 'Employee' && <EmployeeDashboard profile={profile} />}
-      {profile?.role === 'Intern' && <InternDashboard profile={profile} />}
-    </>
-  )
+  return null
 }

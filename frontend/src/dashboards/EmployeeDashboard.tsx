@@ -1,14 +1,14 @@
-import type { DashboardProfile } from "../types"
+import EmployeeLayout from "./employee/EmployeeLayout";
 
 type Props = {
-  profile: DashboardProfile
-}
+  profile: {
+    first_name?: string;
+    last_name?: string;
+  };
+};
 
 export default function EmployeeDashboard({ profile }: Props) {
   return (
-    <div>
-      <h1>Employee Dashboard</h1>
-      <p>Welcome, {profile.first_name}</p>
-    </div>
-  )
+    <EmployeeLayout />
+  );
 }

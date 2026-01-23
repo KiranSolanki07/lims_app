@@ -40,44 +40,81 @@ export default function AuthPage() {
   //  ⭐ UNIVERSAL PROFILE SYNC (Google, LinkedIn, Email Login)
   //  -------------------------------------------------------
   // Always sync names from OAuth into `profiles`
-const syncUserProfile = async (user: any) => {
-  const metadata = user.user_metadata;
+  const syncUserProfile = async (user: any) => {
+    try {
+      const metadata = user.user_metadata;
 
-  const firstName =
-    metadata.given_name ||
-    metadata.firstName ||
-    metadata.first_name ||
-    metadata.localizedFirstName ||
-    '';
+      const firstName =
+        metadata.given_name ||
+        metadata.firstName ||
+        metadata.first_name ||
+        metadata.localizedFirstName ||
+        '';
 
-  const lastName =
-    metadata.family_name ||
-    metadata.lastName ||
-    metadata.last_name ||
-    metadata.localizedLastName ||
-    '';
+      const lastName =
+        metadata.family_name ||
+        metadata.lastName ||
+        metadata.last_name ||
+        metadata.localizedLastName ||
+        '';
 
-  await supabase
-  .from("profiles")
-  .upsert(
-    {
-      id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      role: null,
-    },
-    { onConflict: "id" }
-  );
+      const role = metadata.role || null;
 
-};
+      console.log('Syncing profile:', { id: user.id, firstName, lastName, role });
+
+      // Fetch existing profile to preserve first_name/last_name if not from OAuth
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      // Use existing first/last names if OAuth doesn't have them and they exist in DB
+      const finalFirstName = firstName || existingProfile?.first_name || '';
+      const finalLastName = lastName || existingProfile?.last_name || '';
+
+      const { error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            first_name: finalFirstName,
+            last_name: finalLastName,
+            role: role,
+          },
+          { onConflict: "id" }
+        );
+
+      if (error) {
+        console.error('Error syncing profile:', error);
+      } else {
+        console.log('Profile synced successfully');
+      }
+    } catch (err) {
+      console.error('Error in syncUserProfile:', err);
+    }
+  };
 
 
   // Redirect if already logged in (OAuth callback lands here)
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        await syncUserProfile(session.user);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log('User session found:', { id: session.user.id, email: session.user.email, metadata: session.user.user_metadata });
+          await syncUserProfile(session.user);
+          // Redirect to dashboard to select role or access dashboard
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error in checkSession:', err);
       }
     }
     checkSession()

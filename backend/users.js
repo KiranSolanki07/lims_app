@@ -49,6 +49,7 @@ router.get("/", async (req, res) => {
         exitDate: p.exit_date,
         position: p.position,
         technologies: p.technologies,
+        is_active: p.is_active, // Include the new column
       };
 
     });
@@ -92,35 +93,47 @@ router.post("/", upload.single("profileImage"), async (req, res) => {
     }
 
     /* =========================
-       1️⃣ INVITE USER (AUTH)
+       1️⃣ CREATE USER WITH DEFAULT PASSWORD
     ========================= */
-    const { data: inviteData, error: inviteError } =
-      await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${process.env.VITE_APP_URL_PROD}/login`,
-        data: {
+    const DEFAULT_PASSWORD = "MBT@123";
+    let userId;
+    let userCreated = false;
+
+    // Check if user already exists
+    const { data: allUsers, error: listError } = await supabase.auth.admin.listUsers();
+    
+    if (listError) {
+      throw new Error("Failed to check existing users: " + listError.message);
+    }
+
+    const existingUser = allUsers?.users?.find(u => u.email === email);
+
+    if (existingUser) {
+      // User already exists
+      userId = existingUser.id;
+    } else {
+      // Create new user with default password
+      const { data: createData, error: createError } = await supabase.auth.admin.createUser({
+        email: email,
+        password: DEFAULT_PASSWORD,
+        email_confirm: false, // Don't auto-confirm yet
+        user_metadata: {
           full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
           role,
         },
       });
 
-    if (inviteError && !inviteError.message.includes("already been registered")) {
-      throw inviteError;
-    }
-
-    // If user already exists, fetch their ID
-    let userId;
-
-    if (inviteData?.user?.id) {
-      userId = inviteData.user.id;
-    } else {
-      const { data: existingUser, error: fetchError } =
-        await supabase.auth.admin.getUserByEmail(email);
-
-      if (fetchError || !existingUser?.user) {
-        throw new Error("Failed to retrieve existing user");
+      if (createError) {
+        throw createError;
       }
 
-      userId = existingUser.user.id;
+      userId = createData.user.id;
+      userCreated = true;
+
+      console.log("User created successfully with ID:", userId);
+      console.log("Confirmation email will be sent by Supabase automatically");
     }
 
     /* =========================
@@ -129,7 +142,12 @@ router.post("/", upload.single("profileImage"), async (req, res) => {
     let avatarUrl = null;
 
     if (req.file) {
-      const filePath = `avatars/${userId}-${Date.now()}`;
+      const fileExtension = req.file.originalname.split('.').pop(); // Extract file extension
+      const filePath = `Profile_Images/${userId}-${Date.now()}.${fileExtension}`; // Include folder path and extension
+
+      console.log("Uploading file:", filePath); // Log file name
+      console.log("Original file name:", req.file.originalname); // Log original file name
+      console.log("File extension:", fileExtension); // Log file extension
 
       const { data: uploadData, error: uploadError } =
         await supabase.storage
@@ -139,11 +157,18 @@ router.post("/", upload.single("profileImage"), async (req, res) => {
             upsert: true,
           });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload Error:", uploadError); // Log upload error
+        throw uploadError;
+      }
+
+      console.log("Upload Data:", uploadData); // Log upload data
 
       avatarUrl = supabase.storage
         .from("avatars")
-        .getPublicUrl(uploadData.path).data.publicUrl;
+        .getPublicUrl(filePath).data.publicUrl; // Use filePath directly
+
+      console.log("Uploaded file URL:", avatarUrl); // Log public URL
     }
 
     /* =========================
@@ -172,8 +197,14 @@ router.post("/", upload.single("profileImage"), async (req, res) => {
     if (profileError) throw profileError;
 
     res.status(201).json({
-      message: "User created / updated & invite email sent",
+      message: userCreated 
+        ? "User created successfully. Confirmation email sent with login credentials (Email & Password: MBT@123)"
+        : "User already exists. Profile updated.",
       userId,
+      loginCredentials: {
+        email: email,
+        password: "MBT@123"
+      }
     });
   } catch (err) {
     console.error("CREATE USER ERROR:", err);
@@ -200,6 +231,7 @@ router.put("/:id", upload.single("profileImage"), async (req, res) => {
       exitDate,
       position,
       technologies,
+      existingAvatarUrl,
     } = req.body;
 
     let techsArray = [];
@@ -214,14 +246,36 @@ router.put("/:id", upload.single("profileImage"), async (req, res) => {
 
     let avatarUrl;
     if (req.file) {
-      const path = `avatars/${userId}-${Date.now()}`;
-      const { data } = await supabase.storage
+      // New image uploaded
+      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      const filePath = `Profile_Images/${userId}-${Date.now()}.${fileExtension}`;
+      
+      console.log("UPDATE: Uploading file:", filePath);
+      console.log("UPDATE: Original file name:", req.file.originalname);
+      console.log("UPDATE: File extension:", fileExtension);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, req.file.buffer, { upsert: true });
+        .upload(filePath, req.file.buffer, { 
+          contentType: req.file.mimetype,
+          upsert: true 
+        });
+
+      if (uploadError) {
+        console.error("UPDATE: Upload Error:", uploadError);
+        throw uploadError;
+      }
+
+      console.log("UPDATE: Upload Data:", uploadData);
 
       avatarUrl = supabase.storage
         .from("avatars")
-        .getPublicUrl(data.path).data.publicUrl;
+        .getPublicUrl(filePath).data.publicUrl;
+      
+      console.log("UPDATE: Uploaded file URL:", avatarUrl);
+    } else if (existingAvatarUrl) {
+      // Keep existing image if no new one uploaded
+      avatarUrl = existingAvatarUrl;
     }
 
     const { error } = await supabase
@@ -249,5 +303,56 @@ router.put("/:id", upload.single("profileImage"), async (req, res) => {
   }
 });
 
+/* =========================
+   UPDATE USER STATUS (ADMIN)
+========================= */
+router.patch("/:id/status", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { is_active } = req.body;
+
+    if (is_active === undefined) {
+      return res.status(400).json({ error: "Missing is_active field" });
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active })
+      .eq("id", userId);
+
+    if (error) throw error;
+
+    res.json({ message: "User status updated successfully" });
+  } catch (err) {
+    console.error("UPDATE STATUS ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* =========================
+   DELETE USER (ADMIN)
+========================= */
+router.delete("/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Delete from profiles table
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", userId);
+
+    if (profileError) throw profileError;
+
+    // Delete from auth.users
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (authError) throw authError;
+
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
