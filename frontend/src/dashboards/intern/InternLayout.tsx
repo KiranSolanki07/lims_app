@@ -131,7 +131,7 @@ export default function InternLayout() {
                 <i className="lni lni-user text-xl"></i>
                 {user && (
                   <span className="text-sm text-gray-700 font-medium">
-                    {user.firstName} {user.lastName}
+                    {user.first_name} {user.last_name}
                   </span>
                 )}
               </button>
@@ -141,7 +141,7 @@ export default function InternLayout() {
                   {user && (
                     <>
                       <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-900">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm font-semibold text-gray-900">{user.first_name} {user.last_name}</p>
                         <p className="text-xs text-gray-500">{user.email}</p>
                         <p className="text-xs text-blue-600 font-medium mt-1">{user.role}</p>
                       </div>

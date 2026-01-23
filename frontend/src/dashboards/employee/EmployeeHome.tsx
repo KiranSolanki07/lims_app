@@ -80,7 +80,7 @@ export default function EmployeeHome() {
     }
   };
 
-  const formatTime = (timeString: string | null) => {
+  const formatTime = (timeString: string | null | undefined) => {
     if (!timeString) return "—";
     const [hours, minutes] = timeString.split(":").slice(0, 2);
     return `${hours}:${minutes}`;
@@ -92,7 +92,7 @@ export default function EmployeeHome() {
     <div className="p-6 w-full">
       <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200 mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Welcome, {user?.firstName}!
+          Welcome, {user?.first_name}!
         </h1>
         <p className="text-gray-600 mb-6">
           Here you can manage your attendance and track your work hours.
